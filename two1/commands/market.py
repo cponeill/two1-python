@@ -1,7 +1,10 @@
 """ Two1 command to join various zerotier networks """
 # standard python imports
 import logging
+import os
+import platform
 import subprocess
+import sys
 
 # 3rd party imports
 import click
@@ -54,19 +57,21 @@ def status(ctx):
 
 
 @market.command()
-@click.argument("network", default="21market")
+@click.argument("network", default="21mkt")
+@click.option('-f', '--force', is_flag=True, default=False,
+              help='Ignores the security warnings and force joins the network')
 @click.pass_context
 @decorators.catch_all
 @decorators.json_output
 @decorators.capture_usage
 @decorators.check_notifications
-def join(ctx, network):
+def join(ctx, network, force):
     """Join 21's p2p network."""
-    return join_wrapper(ctx.obj['client'], network)
+    return join_wrapper(ctx.obj['client'], network, force)
 
 
 @market.command()
-@click.argument("network", default="21market")
+@click.argument("network", default="21mkt")
 @click.pass_context
 @decorators.catch_all
 @decorators.json_output
@@ -77,8 +82,12 @@ def leave(ctx, network):
     return _leave(ctx.obj['client'], network)
 
 
-def join_wrapper(client, network):
-    logger.info(uxstring.UxString.join_network_beta_warning)
+def join_wrapper(client, network, force):
+    if not force and not check_platform():
+        logger.error(uxstring.UxString.join_unsupported_platform)
+        sys.exit(1)
+
+    logger.info(uxstring.UxString.join_network_beta_warning % network)
     response = getinput("I understand and wish to continue [y/n]: ", ["y", "n"])
     if response == "y":
         logger.info(uxstring.UxString.superuser_password)
@@ -96,7 +105,7 @@ def _join(client, network):
             for sending authenticated requests to the TwentyOne
             backend
         network (str): the name of the network being joined. Defaults
-        to 21market
+        to 21mkt
 
     Raises:
         ServerRequestError: if server returns an error code other than 401
@@ -130,17 +139,13 @@ def _leave(client, network):
             for sending authenticated requests to the TwentyOne
             backend
         network (str): the name of the network being joined. Defaults
-        to 21market
+        to 21mkt
     """
     # ensures the zerotier daemon is running
     zerotier.start_daemon()
-    is_in_network = False
-    for ntwk in zerotier.list_networks():
-        if ntwk['name'] == network:
-            is_in_network = True
-            nwid = ntwk['nwid']
-            break
-    if not is_in_network:
+    try:
+        nwid = zerotier.get_network_id(network)
+    except KeyError:
         logger.info('not in network')
         return {'left': False, 'reason': 'not in network'}
     try:
@@ -150,6 +155,37 @@ def _leave(client, network):
     except subprocess.CalledProcessError as e:
         logger.info(str(e))
         return {'left': False, 'reason': str(e)}
+
+
+def check_platform():
+    """Check whether join is supported on the current platform.
+
+    Due to security reasons, 21 join should only be allowed on Bitcoin Computers, Docker VMs,
+    and EC2 machines.
+
+    Returns:
+        boolean: True if the os/platform is supported.
+    """
+    system = platform.system()
+    distro = platform.platform()
+    is_raspberry_pi = False
+    try:
+        info = open("/proc/cpuinfo").read()
+    except FileNotFoundError:
+        is_raspberry_pi = False
+    else:
+        # bcm2708: Raspberry Pi 1
+        # bcm2709: Raspberry Pi 2
+        # bcm2710: Raspberry Pi 3
+        is_raspberry_pi = 'BCM27' in info or 'ODROID' in info
+
+    return system == "Linux" and (
+        os.path.isfile('/proc/device-tree/hat/uuid') or
+        'boot2docker' in distro.lower() or
+        is_raspberry_pi or
+        os.path.isfile('/sys/hypervisor/uuid') or
+        os.path.isdir('/var/lib/digitalocean')
+    )
 
 
 def show_network_status():

@@ -1,22 +1,24 @@
 """Diagnose 21 installation."""
+from urllib.parse import urljoin
+import enum
+import logging
 import os
 import platform
+import requests
 import shutil
 import socket
 import sys
-import enum
 import urllib.parse as parse
-import logging
 
 import click
-import requests
 
-import two1
-import two1.commands.util.version as version
-from two1.commands.util import uxstring
+from two1.commands import market
+from two1.commands.util import bitcoin_computer
 from two1.commands.util import decorators
 from two1.commands.util import exceptions
-from two1.commands.util import bitcoin_computer
+from two1.commands.util import uxstring
+import two1
+import two1.commands.util.version as version
 
 # Creates a ClickLogger
 logger = logging.getLogger(__name__)
@@ -29,7 +31,7 @@ class Check(object):
         """ Enum used to indicate result of a Doctor check """
         PASS = "green"
         FAIL = "red"
-        SKIP = "purple"
+        SKIP = "magenta"
         WARN = "yellow"
 
     # change this to adjust the first column width in the doctor report
@@ -74,10 +76,6 @@ class Doctor(object):
     # OS dictionary of operating system name to version
     SUPPORTED_OS = {
         "Linux": "4.0.0",
-        "Darwin": "14.0.0"
-        }
-    UNMAINTAINED_OS = {
-        "Linux": "3.10.0",
         "Darwin": "14.0.0"
         }
 
@@ -224,7 +222,8 @@ class Doctor(object):
         Returns:
             Check.Result, str, str: Result of the check
                                     Human readable message describing the check
-                                    The name of the operating system
+                                    The name of the operating system,
+                                    e.g. "Linux"
         """
         check_str = "OS Kernel"
         actual_os = platform.system()
@@ -239,25 +238,15 @@ class Doctor(object):
         Returns:
             Check.Result, str, str: Result of the check
                                     Human readable message describing the check
-                                    Operating system version
+                                    Operating system version,
+                                    e.g. "4.4.14-11.x86_64"
         """
         check_str = "OS Kernel Version"
-        actual_os = platform.system()
         actual_os_version = platform.release()
 
-        # make sure the os is supported first
-        if actual_os in self.SUPPORTED_OS.keys():
-
-            # use the os as a lookup for the version
-            expected_os_version = self.SUPPORTED_OS[actual_os]
-            unmaintained_os_version = self.UNMAINTAINED_OS[actual_os]
-            if version.is_version_gte(actual_os_version, expected_os_version):
-                return Check.Result.PASS, check_str, actual_os_version
-
-            elif version.is_version_gte(actual_os_version, unmaintained_os_version):
-                return Check.Result.WARN, check_str, actual_os_version
-
-        return Check.Result.FAIL, check_str, actual_os_version
+        # Always return success, but display actual OS version to
+        # help with debugging
+        return Check.Result.PASS, check_str, actual_os_version
 
     def check_general_python_version(self):
         """ Checks if the python version is valid
@@ -355,6 +344,8 @@ class Doctor(object):
                                     Path to the zerotier-cli binary
         """
         check_str = "Zerotier CLI"
+        if not market.check_platform():
+            return Check.Result.SKIP, check_str, "zerotier-cli not applicable"
 
         zt_cli = shutil.which("zerotier-cli")
         if zt_cli:
@@ -471,13 +462,10 @@ class Doctor(object):
                                     Human readable message describing the check
                                     Url to the 21 blockchain provider
         """
-        check_str = "21 Blockchain Provider"
-        result = Check.Result.FAIL
-        # checks connection and status code
-        if self.make_http_connection(two1.TWO1_PROVIDER_HOST):
-            result = Check.Result.PASS
-
-        return result, check_str, two1.TWO1_PROVIDER_HOST
+        return self._check_server(
+            "21 Blockchain Provider",
+            urljoin(two1.TWO1_PROVIDER_HOST, 'blockchain/bitcoin/blocks/latest')
+        )
 
     def check_server_21_pypi(self):
         """ Checks if 21 hosted pypi server is up
@@ -534,7 +522,7 @@ class Doctor(object):
                                     HTTP status code from the request
         """
         try:
-            response = requests.get(url)
+            response = requests.get(url, timeout=5)
         except requests.exceptions.RequestException:
             return Check.Result.FAIL, check_str, url
 

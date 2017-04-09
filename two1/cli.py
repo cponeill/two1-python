@@ -15,6 +15,7 @@ import sys
 
 import two1
 import two1.commands.util.logger
+import two1.blockchain.exceptions as blockchain_exceptions
 
 from two1.commands.util import bitcoin_computer
 from two1.server import rest_client
@@ -26,7 +27,6 @@ from two1.commands.util import exceptions
 from two1.commands.util import wallet as wallet_utils
 from two1.commands.util import account as account_utils
 from two1.commands.buy import buy
-from two1.commands.buybitcoin import buybitcoin
 from two1.commands.doctor import doctor
 from two1.commands.mine import mine
 from two1.commands.log import log
@@ -60,6 +60,7 @@ def parse_config(
         config_file=two1.TWO1_CONFIG_FILE,
         config_dict=None,
         need_wallet_and_account=True,
+        check_update=False,
         debug=False,
 ):
     """Get configuration information that is used to drive all 21 commands.
@@ -80,13 +81,18 @@ def parse_config(
     wallet, username, and other variables.
     """
     try:
-        config = two1_config.Config(config_file, config_dict)
+        config = two1_config.Config(
+            config_file, config_dict, check_update=check_update)
     except exceptions.FileDecodeError as e:
         raise click.ClickException(uxstring.UxString.Error.file_decode.format((str(e))))
 
     wallet, machine_auth, username, client = None, None, None, None
     if need_wallet_and_account:
-        wallet = wallet_utils.get_or_create_wallet(config.wallet_path)
+        try:
+            wallet = wallet_utils.get_or_create_wallet(config.wallet_path)
+        except blockchain_exceptions.DataProviderError as err:
+            raise exceptions.Two1Error(
+                'You have experienced a data provider error: %s ' % err.args)
         machine_auth = machine_auth_wallet.MachineAuthWallet(wallet)
         username = account_utils.get_or_create_username(config, machine_auth)
         client = rest_client.TwentyOneRestClient(two1.TWO1_HOST, machine_auth, config.username)
@@ -134,6 +140,7 @@ For full documentation, visit 21.co/learn.
 """
     need_wallet_and_account = ctx.invoked_subcommand not in (
         'help', 'update', 'login', 'doctor', 'uninstall')
+    check_update = ctx.invoked_subcommand not in ('update')
 
     # Set UUID if available
     uuid = bitcoin_computer.get_device_uuid()
@@ -145,6 +152,7 @@ For full documentation, visit 21.co/learn.
             config_file=config_file,
             config_dict=dict(config_pairs),
             need_wallet_and_account=need_wallet_and_account,
+            check_update=check_update,
             debug=debug,
         )
     except requests.ConnectionError:
@@ -159,7 +167,6 @@ For full documentation, visit 21.co/learn.
             sys.exit(1)
 
 main.add_command(buy)
-main.add_command(buybitcoin)
 main.add_command(channels)
 main.add_command(doctor)
 main.add_command(earn)

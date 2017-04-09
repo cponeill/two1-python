@@ -1,6 +1,7 @@
 """ All command line related exceptions """
 # standart python imports
 import logging
+import sys
 
 # 3rd party imports
 import click
@@ -11,24 +12,24 @@ logger = logging.getLogger(__name__)
 
 
 class Two1Error(click.ClickException):
-    """ A generic Two1Error """
+    """
+    A ClickException with customized formatting.
+    """
 
-    def __init__(self, msg="", json=None):
-        self._msg = msg
-        self._json = json if json else None
-        super(Two1Error, self).__init__(self._msg)
+    def __init__(self, message, json=None):
+        self.json = json if json else {}
+        super(Two1Error, self).__init__(message)
 
-    def __str__(self):
-        return self._msg
+    def format_message(self):
+        return click.style(str(self.message), fg='red')
 
     def show(self, file=None):
-        """ Prints the error message to standard out or to a file
-
-            Two1Error overwrites the show function because ClickException.show
-            prefixes "Error:" to the error message which causes some undesireable
-            UX effects.
         """
-        logger.info(str(self.format_message()), file=file)
+        Same as base method but without printing "Error: "
+        """
+        if file is None:
+            file = sys.stderr
+        click.echo(self.format_message(), file=file)
 
 
 class UnloggedException(Two1Error):
@@ -50,24 +51,26 @@ class FileDecodeError(Exception):
 class ServerRequestError(Two1Error):
     """ Error during a request to a server """
 
-    def __init__(self, msg="", response=None, status_code=None, data=None):
-        super(ServerRequestError, self).__init__(msg)
-        if response is not None:
-            self.status_code = response.status_code
-            try:
-                self.data = response.json()
-            except ValueError:
-                self.data = {"error": "Request Error"}
-        else:
-            self.status_code = status_code
-            self.data = data
+    def __init__(self, response, message=''):
+        self.response = response
+        self.status_code = response.status_code
+        try:
+            # For 4XX responses we expect the response json to have this format:
+            # {"error": "invalid_login", "message": "Incorrect username or password"}
+            self.data = response.json()
+        except ValueError:
+            self.data = {}
+        message = (
+            message or self.data.get('message') or self.data.get('error') or
+            'Unspecified HTTP error (%d).' % self.status_code)
+        super(ServerRequestError, self).__init__(message)
 
 
 class ServerConnectionError(Two1Error):
     """Error during a connection to a server"""
 
-    def __init__(self, msg=""):
-        super(ServerConnectionError, self).__init__(msg)
+    def __init__(self, message=""):
+        super(ServerConnectionError, self).__init__(message)
 
 
 class BitcoinComputerNeededError(ServerRequestError):

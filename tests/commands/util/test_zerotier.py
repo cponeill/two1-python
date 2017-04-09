@@ -96,7 +96,7 @@ MULTIPLE_NETWORKS = [
     {
         "nwid": "6c0c6960a20bf150",
         "mac": "32:07:df:07:02:6d",
-        "name": "21market",
+        "name": "21mkt",
         "status": "OK",
         "type": "PRIVATE",
         "assignedAddresses": ["10.244.223.250/16"],
@@ -117,7 +117,7 @@ SINGLE_NETWORKS = [
     {
         "nwid": "6c0c6960a20bf150",
         "mac": "32:07:df:07:02:6d",
-        "name": "21market",
+        "name": "21mkt",
         "status": "OK",
         "type": "PRIVATE",
         "assignedAddresses": ["10.244.223.250/16"],
@@ -154,8 +154,8 @@ def test_get_address_by_id(network_id, list_networks_ret_val, outcome):
 
 
 @pytest.mark.parametrize("list_networks_ret_val, outcome", [
-    (MULTIPLE_NETWORKS, {'21market': "10.244.223.250", '': ""}),
-    (SINGLE_NETWORKS, {'21market': "10.244.223.250"}),
+    (MULTIPLE_NETWORKS, {'21mkt': "10.244.223.250", '': ""}),
+    (SINGLE_NETWORKS, {'21mkt': "10.244.223.250"}),
     (EMPTY_NETWORKS, {}),
     ])
 def test_get_all_addresses(list_networks_ret_val, outcome):
@@ -170,11 +170,11 @@ def test_get_all_addresses(list_networks_ret_val, outcome):
 
 
 @pytest.mark.parametrize("network_name, get_all_ret_val,  outcome", [
-    ("21market", {'21market': "10.244.223.250", '': ""}, "10.244.223.250"),
-    ("21market", {'21beta': "10.244.223.250", '': ""}, None),
-    ("", {'21market': "10.244.223.250"}, None),
-    ("", {'21market': "10.244.223.250", '': "10.244.223.250"}, "10.244.223.250"),
-    ("21market", {}, None)
+    ("21mkt", {'21mkt': "10.244.223.250", '': ""}, "10.244.223.250"),
+    ("21mkt", {'21beta': "10.244.223.250", '': ""}, None),
+    ("", {'21mkt': "10.244.223.250"}, None),
+    ("", {'21mkt': "10.244.223.250", '': "10.244.223.250"}, "10.244.223.250"),
+    ("21mkt", {}, None)
     ])
 def test_get_address(network_name, get_all_ret_val, outcome):
     """ Tests zerotier.get_address function """
@@ -252,12 +252,12 @@ def test_leave_network(mock_cli, network_id, outcome):
 
 @pytest.mark.parametrize("which_side_effect, system_return_value, cmd, outcome", [
     ((None, None), "Windows", (), EnvironmentError),
-    (("yep", None), "Linux", ('sudo', 'systemctl', 'start', 'zerotier-one.service'), "passed"),
-    ((None, "yep"), "Linux", ('sudo', 'service', 'zerotier-one', 'start'), "passed"),
+    (("yep", None), "Linux", ('sudo', 'systemctl', 'start', 'zerotier-one.service'), 0),
+    ((None, "yep"), "Linux", ('sudo', 'service', 'zerotier-one', 'start'), 0),
     ((None, None), "Linux", (), EnvironmentError),
     ((None, None), "Darwin", (), ""),
     ])
-@mock.patch('two1.commands.util.zerotier.subprocess.check_output')
+@mock.patch('two1.commands.util.zerotier.subprocess.call')
 @mock.patch('two1.commands.util.zerotier.platform.system')
 @mock.patch('two1.commands.util.zerotier.shutil.which')
 @mock.patch('two1.commands.util.zerotier.is_installed')
@@ -269,7 +269,7 @@ def test_start_daemon(
     system_mock.return_value = system_return_value
     is_installed_mock.return_value = True
 
-    if isinstance(outcome, str):
+    if isinstance(outcome, (str, int)):
         check_output_mock.return_value = outcome
         assert zerotier.start_daemon() == outcome
         if outcome:

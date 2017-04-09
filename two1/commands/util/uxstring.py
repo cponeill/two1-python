@@ -38,10 +38,6 @@ class UxString:
     update_required = click.style("You are using an old version of 21. Please update using the '21 "
                                   "update' command.",
                                   fg="red")
-    bitcoin_computer_needed = click.style("You need a 21 Bitcoin Computer (21.co/buy) to access "
-                                          "this service. If you believe you have received this "
-                                          "message in error, please contact support@21.co.",
-                                          fg="red")
     max_accounts_reached = click.style(
         "You have reached the maximum number of 21.co accounts that you can create. ", fg="red") +\
         click.style("Use ", fg="red") +\
@@ -78,7 +74,6 @@ class UxString:
         "Press any key ..."
     )
 
-    wallet_daemon_started = "Started wallet daemon. To stop it, type 'wallet stopdaemon'."
     payout_address = "Setting default payout address to: {}"
     get_started = "Check out our introductory guide to learn the basics of 21: https://21.co/learn/intro-to-21/"
     analytics_optin = "\nWould you like to help 21.co collect usage analytics?\n"\
@@ -94,7 +89,7 @@ class UxString:
         click.style("\nFlushing to Blockchain\n", fg='magenta') +
         "Your satoshis will be sent to you on the Blockchain in the next payout cycle.\n"
         "Estimated time of payout: ~20 minutes.\n"
-        "To check progress:  https://blockexplorer.com/address/{}\n"
+        "To check progress:  https://blockchain.info/address/{}\n"
     )
 
     # username
@@ -118,10 +113,6 @@ class UxString:
     login_prompt_invalid_user = "Please select a number between {} and {} to select the " \
                                 "corresponding username"
     login_prompt_user_does_not_exist = "User {} does not exist or is not authorized for this wallet.\n"
-
-    existing_account = click.style("There is already a username associated with your current wallet. Use ", fg="red") +\
-        click.style("21 login -u {}", bold=True, fg="red") +\
-        click.style(" to login.", fg="red")
 
     set_new_password = "Please set a password for" +\
                        click.style(" {}.", bold=True) +\
@@ -190,6 +181,15 @@ class UxString:
     buy_channel_aborted = "Payment aborted."
     buy_bad_data_format = "Unknown data format."
     buy_balances = "\nYou spent: {} satoshis. Remaining {} balance: {} satoshis."
+    channel_not_ready = "Channel not ready\n" \
+        + "\n" \
+        + "Please wait for the channel to finish opening, and then try again.\n" \
+        + "It may take up to 90 minutes for a channel to open.\n" \
+        + "\n" \
+        + "You may check on the status of your channels by running\n" \
+        + "the following commands:\n" \
+        + "    channels sync\n" \
+        + "    channels list\n" \
 
     # doctor
     doctor_start = click.style("21 doctor", fg='green') + "\n\n" + \
@@ -200,68 +200,6 @@ class UxString:
     doctor_BC = click.style("Checking Bitcoin Computer dependencies..", fg='yellow')
     doctor_error = click.style("    Error: ", fg='red')
     doctor_total = click.style("Summary", fg='yellow')
-
-    # buybitcoin
-    minimum_bitcoin_purchase = click.style("The minimum bitcoin purchase is $2.", fg="red")
-    exchange_info_header = click.style("\nExchange Info", fg="magenta")
-    exchange_info = "    Exchange Name          : {}\n" \
-                    "    Exchange Username      : {}\n" \
-                    "    Linked Exchange Wallet : {}\n" \
-                    "    Linked Payment Method  : {}\n"
-    buybitcoin_instruction_header = click.style("Buying Bitcoin:", fg="magenta")
-    buybitcoin_instructions = "    Use " + click.style("21 buybitcoin", bold=True) +\
-                              " to buy k satoshis from {}.\n" +\
-                              "    Purchased bitcoin will automatically appear in your 21 wallet.\n\n"
-    buybitcoin_pairing = \
-        "To buy bitcoin, you need to pair your 21 and {} account.\n\n" + \
-        "If you haven't done this yet, create a password for your account by " \
-        "executing " + click.style("21 login --setpassword", bold=True) + \
-        "\nThen go to http://21.co/{}/config/coinbase/ in your " + \
-        "browser to complete the pairing.\n"
-    buybitcoin_no_payment_method = \
-        "To add a payment method to {}, go to {}."
-    buybitcoin_confirmation = "\nYou are about to withdraw {} from the bank connected to your " \
-                              "Coinbase account to buy {}.\n" \
-                              "{} includes {}\n" \
-                              "Your bitcoin will be deposited to your local wallet.\n"
-    buybitcoin_confirmation_prompt = "Are you sure you want to continue with this purchase?"
-    buybitcoin_error = click.style("Error:", bold=True, fg="red") + " {}"
-    buybitcoin_success = click.style("\nYou have successfully bought ", fg="magenta") +\
-        click.style("{} ", fg="magenta", bold=True) +\
-        click.style("for", fg="magenta") +\
-        click.style(" {}.\n", bold=True, fg="magenta")
-
-    buybitcoin_success_payout_time = "Your bitcoin will be deposited to your 21 wallet on {}."
-    buybitcoin_success_instant = "Your bitcoin will be deposited to your 21 wallet in the next " \
-                                 "few minutes."
-
-    coinbase_purchase_in_progress = "\nPurchasing bitcoin from Coinbase...\n"
-
-    coinbase_deposit_type_mapping = {"WALLET": "your Blockchain balance",
-                                     "TO_BALANCE": "your 21.co buffer"}
-    coinbase_wallet_completed = "The bitcoin you bought at Coinbase was deposited to your wallet on {}"
-    coinbase_21_completed = "The bitcoin you bought at Coinbase was added to your on-chain balance. " \
-                            "Around {}, {} BTC amount were withdrawn from your " \
-                            "Coinbase wallet for this purchase."
-
-    coinbase_wallet_pending = "The bitcoin you bought at Coinbase will be deposited to your wallet around {}"
-    coinbase_21_pending = "The bitcoin you bought at Coinbase was added to your on-chain balance immediately. " \
-                          "Around {}, {} BTC will be withdrawn from your Coinbase wallet for this " \
-                          "purchase."
-
-    coinbase_history_title = click.style("[21 Bitcoin Purchase History]\n", bold=True, fg="magenta")
-    coinbase_no_bitcoins_purchased = "[No purchases yet]"
-    coinbase_history = click.style(
-        "{} : {} bitcoin from your Coinbase to {}.\n",
-        fg="cyan") + "Description: {}"
-    coinbase_quote_price_satoshis = "The current price for {} {} is {} {}."
-    coinbase_quote_price_dollars = "You can get {} {} for {} {}."
-    coinbase_max_buy_reached = click.style(
-        "You have reached the daily maximum for Bitcoin purchases. Please try again in a few "
-        "hours.", fg="red")
-    coinbase_amount_too_high = click.style(
-        "The amount you entered is too high. The maximum daily bitcoin purchase limit "
-        "is 100 USD.", fg="red")
 
     # earning
     use_21_earn_instead = click.style(
@@ -282,13 +220,9 @@ class UxString:
     earn_faucet_finish = "\nView your balance with {}, or spend with {}."
     earn_limit_reached = "\nFurther earning advances are not possible at this time. " \
                          "Please try again in a few hours."
-    lifetime_earn_limit_reached = "You have reached the faucet earning limit for your account. " \
-                                  "Please visit 21.co/learn to discover new ways you can earn " \
-                                  "bitcoin."
+    lifetime_earn_limit_reached = "You have reached the faucet earning limit for your account. "
 
-    no_earn_allocations = (
-        "Please enable the faucet by connecting a social network to your 21 account at {}/{}/config/profile."
-    )
+    no_earn_allocations = "The 21 Faucet is disabled at this time."
 
     # wallet
     wallet_top_title = click.style("Your 21 wallets:\n", fg="magenta")
@@ -326,10 +260,13 @@ class UxString:
                                    "Please try again in 30 days."
 
     mining_bitcoin_computer_needed = click.style(
-        "You need a 21 Bitcoin Computer (21.co/buy) to access this service. \nYou can use ", fg="red") +\
-        click.style("21 buybitcoin", bold=True, fg="red") +\
-        click.style(" to add Bitcoins to your account instead. \nIf you believe you have received this ", fg="red") +\
-        click.style("message in error, please contact support@21.co.", fg="red")
+        "You need a 21 Bitcoin Computer (21.co/buy) to access this service. \nIf you believe you have ", fg="red") +\
+        click.style("received this message in error, please contact support@21.co.", fg="red")
+
+    mining_profile_call_to_action = click.style(
+        "You can earn more bitcoin by responding to messages after configuring your public "
+        "profile page at ",
+        fg="green") + click.style("{}", bold=True, fg="green") + click.style(" .", fg="green")
 
     # uninstall
     uninstall_init = "Uninstalling 21's software libraries and tools."
@@ -340,8 +277,6 @@ class UxString:
     # flush
     flush_status = "\n* Your flushed amount of %s satoshis will appear " \
                    "in your wallet balance as soon as they appear on the Blockchain."
-
-    flush_insufficient_earnings = "You need to flush a minimum of 20000 satoshis."
 
     flush_not_enough_earnings = "You don't have enough balance to flush {} satoshis."
 
@@ -415,6 +350,16 @@ class UxString:
         fg='red'
     )
 
+    join_unsupported_platform = click.style(
+        "Joining or publishing to the 21 Marketplace is not supported on this platform.\n"
+        "Supported platforms:\n"
+        "\t- 21 Bitcoin Computer\n"
+        "\t- Amazon EC2\n"
+        "\t- DigitalOcean\n"
+        "\t- Docker virtual machine\n"
+        "\t- ODROID\n"
+        "\t- Raspberry Pi\n",
+        fg="red")
     join_network_beta_warning = """
 WARNING
 -------
@@ -439,101 +384,9 @@ laptop that doesn't provide any shared resources, or a small standalone
 machine such as a 21 Bitcoin Computer (21.co/buy) or DIY Bitcoin Computer
 (21.co/diy).
 
-Network:
+Network: %s
 """
     join_network_beta_exit = "OK, understood. Check out 21.co/buy or 21.co/diy to set up a standalone machine."
-
-    # publish
-    publish_docs_url = click.style("https://21.co/learn/21-publish/", bold=True)
-    publish_instructions = "For instructions on publishing your app, please refer to {}".format(publish_docs_url)
-
-    manifest_missing = click.style("Could not find the manifest file at {}.", fg="red")
-
-    bad_manifest = "{}{}".format("The following error occurred while reading your manifest file at {}:\n{}\n\n",
-                                 publish_instructions)
-
-    malformed_yaml = click.style("Your manifest file at {} is not valid YAML.", fg="red")
-    large_manifest = click.style("The size of the manifest file at {} exceeds the maximum limit of 2MB.", fg="red")
-
-    manifest_is_directory = click.style("{} is a directory. Please enter the direct path to the manifest file.",
-                                        fg="red")
-    no_zt_network = click.style("You are not part of the {}. Use {} to join the market.".format("{}", join_cmd),
-                                fg="red")
-    invalid_parameter = "Manifest parameter overrides should be in the form 'key1=\"value1\" " \
-                        "key2=\"value2\"."
-
-    invalid_price_format = "Price should be a non-negative integer."
-    invalid_port_format = "Port should be an integer between 0 and 65536."
-
-    wrong_ip = click.style("It seems that the IP address that you put in your manifest file (") +\
-        click.style("{}", bold=True) +\
-        click.style(") is different than your current 21market IP (") +\
-        click.style("{}", bold=True) +\
-        click.style(")\nAre you sure you want to continue publishing with ") +\
-        click.style("{}", bold=True) +\
-        click.style("?")
-
-    switch_host = click.style("Please edit ") +\
-        click.style("{}", bold=True) +\
-        click.style(" and replace ") +\
-        click.style("{}", bold=True) +\
-        click.style(" with ") +\
-        click.style("{}.", bold=True)
-
-    publish_start = click.style("Publishing {} at ") + click.style(
-        "{}", bold=True) + click.style(" to {}.")
-
-    publish_success = click.style(
-        "{} successfully published to {}. It may take a couple of minutes for your app "
-        "to show up in the marketplace.\nYou can view your app at https://21.co/mkt.", fg="magenta")
-
-    app_url_claimed = "The endpoint {} specified in your manifest has already been registered in " \
-                      "the marketplace by another user.\nPlease check your manifest file and make " \
-                      "sure your 'host' field is correct.\nIf the problem persists please contact " \
-                      "support@21.co."
-
-    valid_app_categories = {'blockchain', 'entertainment', 'social', 'markets', 'utilities', 'iot'}
-
-    valid_top_level_manifest_fields = ["schemes", "host", "basePath", "x-21-manifest-path", "info"]
-    top_level_manifest_field_missing = click.style("Field '{}' is missing from the manifest file.", fg="red")
-    manifest_info_fields = ["contact",
-                            "title",
-                            "description",
-                            "x-21-total-price",
-                            "x-21-quick-buy",
-                            "x-21-category"]
-    manifest_info_field_missing = click.style("Field '{}' is missing from the manifest file under the 'info' section.",
-                                              fg="red")
-
-    manifest_contact_fields = {"name", "email"}
-    manifest_contact_field_missing = click.style(
-        "Field '{}' is missing from the manifest file under the 'contact' section.", fg="red")
-
-    price_fields = ["min", "max"]
-    price_fields_missing = click.style("Field '{}' is missing from the manifest file under the "
-                                       "'x-21-total-price' section.",
-                                       fg="red")
-    scheme_missing = click.style("You have to specify either HTTP or HTTPS for your endpoint under the "
-                                 "`schemes` section.",
-                                 fg="red")
-    invalid_category = click.style("'{}' is not a valid category for the 21 marketplace. Valid categories are {}.",
-                                   fg="red")
-
-    # publish-list
-    my_apps = "Listing all the published apps by {}: "
-    no_published_apps = click.style("You haven't published any apps to the marketplace yet. Use ", fg="blue") +\
-        click.style("21 publish submit {PATH_TO_MANIFEST_FILE}", bold=True, fg="blue") +\
-        click.style(" to publish your apps to the marketplace.", fg="blue")
-
-    app_does_not_exist = "The specified id for the app ({}) does not match any apps in the " \
-                         "marketplace."
-
-    # publish delete
-    delete_confirmation = "Are you sure that you want to delete the app with id '{}'?"
-    delete_success = "App {} ({}) was successfully removed from the marketplace."
-    delete_app_not_exist = "The app with id '{}' does not exist in the marketplace."
-    delete_app_no_permissions = "You don't have permission to delete the app with id '{}'. You " \
-                                "can only delete apps that you have published."
 
     # sell
     unsupported_package_manager = click.style("Sorry your package manager is not supported. ", fg="red") +\
@@ -596,19 +449,21 @@ Network:
 
     # send
     send_success = ("Successfully sent {0} satoshis to {1}.\ntxid: {2}\n"
-                    "To see on the blockchain: https://blockexplorer.com/tx/{2}")
+                    "To see on the blockchain: https://blockchain.info/tx/{2}")
     send_success_verbose = ("Successfully sent {0} satoshis to {1}.\ntxid: {2}\ntxn: {3}\n"
-                            "To see on the blockchain: https://blockexplorer.com/tx/{2}")
+                            "To see on the blockchain: https://blockchain.info/tx/{2}")
     send_insufficient_confirmed = ("Insufficient confirmed balance. However, you can use unconfirmed"
                                    " transactions with --use-unconfirmed. ")
     send_insufficient_blockchain_21bc = (
-        "Insufficient Blockchain balance of {} satoshis.\nCannot send {} satoshis to {}.\n"
-        "Run %s, then %s to increase your on-chain balance." %
-        (click.style("21 mine", bold=True), click.style("21 flush", bold=True)))
+        "Insufficient Blockchain balance of {} satoshis.\nCannot send {} satoshis to {}.\n\n"
+        "{}\n\n"
+        "Try sending fewer satoshis, or run 21 mine, then 21 flush\n"
+        "to increase your on-chain balance so you can send more.")
     send_insufficient_blockchain_free = (
-        "Insufficient Blockchain balance of {} satoshis.\nCannot send {} satoshis to {}.\n"
-        "Run %s, then %s to increase your on-chain balance." %
-        (click.style("21 earn", bold=True), click.style("21 flush", bold=True)))
+        "Insufficient Blockchain balance of {} satoshis.\nCannot send {} satoshis to {}.\n\n"
+        "{}\n\n"
+        "Try sending fewer satoshis, or run 21 earn, then 21 flush\n"
+        "to increase your on-chain balance so you can send more.")
     send_rejected = ("Transaction rejected.\nYou may have to wait for other transactions to confirm.")
 
     # wallet
@@ -634,23 +489,6 @@ Network:
 
     class Error:
         """ Put all Error type uxstrings here """
-        # network errors
-        connection = click.style("Error: Cannot connect to {}. Please check your Internet connection.", fg="red")
-        connection_cli = "An internet connection is required to run this command."
-        timeout = "Error: Connection to %s timed out."
-        request = click.style("Error: Server request error occurred", fg="red")
-
-        # 500 unknown error
-        server_err = click.style("You have experienced a technical error. "
-                                 "We are working to correct this issue.",
-                                 fg="red")
-        non_existing_user = "Error: Username %s does not exist."
-
-        # 403 errors
-        server_403 = click.style("Received forbidden error (403). Login in with ", fg="red") +\
-            click.style("21 login ", bold=True, fg="red") +\
-            click.style("and try again.", fg="red")
-
         # wallet errors
         create_wallet_failed = "Error: Could not create wallet."
 

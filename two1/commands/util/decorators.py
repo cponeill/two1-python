@@ -58,8 +58,8 @@ def json_output(f):
             # sets the level back to original
             logging.disable(original_level)
 
-            err_json = ex._json
-            err_json["error"] = ex._msg
+            err_json = ex.json or {}
+            err_json["error"] = ex.message
 
             # dumps the json error
             logger.info(jsonlib.dumps(err_json, indent=4, separators=(',', ': ')))
@@ -195,8 +195,8 @@ def capture_usage(func):
 
             # add json data and message from a Two1Error to the data payload
             if isinstance(ex, exceptions.Two1Error) and hasattr(ex, "_json"):
-                data['json'] = ex._json
-                data['message'] = ex._msg
+                data['json'] = ex.json
+                data['message'] = ex.message
 
             # send usage payload to the logging server
             _send_to_logger(data)
@@ -207,43 +207,45 @@ def capture_usage(func):
 
 
 def catch_all(func):
-    """ Adds a safety net to functions that catches all exceptions
+    """
+    Catch (nearly) all exceptions unless in debug mode.
 
     Args:
         func (function): function being decorated
     """
     def _catch_all(ctx, *args, **kwargs):
-        """ Catches all exceptions and prints the stacktrace if an environment variable is set
-
+        """
         Args:
             ctx (click.Context): cli context object
             args (tuple): tuple of args of the fuction
             kwargs (dict): keyword args of the function
         """
+        def stderr(msg):
+            click.echo(click.style(msg, fg='red'), file=sys.stderr)
         try:
             return func(ctx, *args, **kwargs)
         except click.Abort:
-            # on SIGINT click.prompt raise click.Abort
+            # on SIGINT click.prompt raises click.Abort
             logger.error('')  # just to get a newline
-        # raise all click exceptions because they are used to bail and print a message
+
         except click.ClickException:
-            # dont raise exception if --json was given so no error messages are printed
-            # errors are printed in a json format in the json_decorator above
-            if "json" in ctx.params and ctx.params['json']:
-                return
-            else:
-                raise
+            raise  # Let click deal with it
 
         except Exception:
             # generic error string
-            logger.error(uxstring.UxString.Error.server_err)
+            stderr(
+                'You have experienced a client-side technical error.')
 
             # only dump the stack traces if the debug flag is set
             if kwargs.get('debug') or ctx.obj['debug']:
-                logger.error("\nFunction: {}.{}".format(func.__module__, func.__name__), fg="red")
-                logger.error("Args: {}".format(args), fg="red")
-                logger.error("Kwargs: {}".format(kwargs), fg="red")
-                logger.error("{}".format(traceback.format_exc()), fg="red")
+                stderr("\nFunction: {}.{}".format(func.__module__, func.__name__))
+                stderr("Args: {}".format(args))
+                stderr("Kwargs: {}".format(kwargs))
+                stderr("{}".format(traceback.format_exc()))
+            else:
+                stderr(
+                    'For more detail, run your command with the debug flag: '
+                    '`21 --debug <command>.`')
         sys.exit(1)
 
     return functools.update_wrapper(_catch_all, func)

@@ -99,11 +99,11 @@ TEST_DEP_AMOUNT = 100000
 TEST_DUST_AMOUNT = 1
 TEST_PMT_AMOUNT = 5000
 TEST_FEE_AMOUNT = 30000
-TEST_EXPIRY = 86400
+TEST_EXPIRY = 86400 * 8
 cust_wallet = MockTwo1Wallet()
 merch_wallet = MockTwo1Wallet()
 BAD_SIGNATURE = codecs.encode(cust_wallet._private_key.sign('fake').to_der(), 'hex_codec')
-channel_server = PaymentServer(merch_wallet, testnet=True)
+channel_server = PaymentServer(merch_wallet)
 channel_server._blockchain = MockBlockchain()
 
 
@@ -158,7 +158,7 @@ def test_channel_server_open():
     channel_server._db = DatabaseSQLite3(':memory:', db_dir='')
     test_client = _create_client_txs()
 
-    # Initialize the handshake and ensure that it returns sucessfully
+    # Initialize the handshake and ensure that it returns successfully
     channel_server.open(test_client.deposit_tx, test_client.redeem_script)
 
     # Test for handshake failure when using the same refund twice

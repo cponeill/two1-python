@@ -6,7 +6,6 @@ import threading
 
 import two1
 from two1.bitcoin.txn import Transaction
-from two1.blockchain.twentyone_provider import TwentyOneProvider
 from .models import OnChainSQLite3
 
 logger = logging.getLogger('bitserv')
@@ -117,7 +116,7 @@ class OnChain(PaymentBase):
         """Initialize payment handling for on-chain payments."""
         self.db = db or OnChainSQLite3(db_dir=db_dir)
         self.address = wallet.get_payout_address()
-        self.provider = TwentyOneProvider(two1.TWO1_PROVIDER_HOST)
+        self.provider = wallet.data_provider
 
     @property
     def payment_headers(self):
@@ -243,7 +242,7 @@ class BitTransfer(PaymentBase):
     def get_402_headers(self, price, **kwargs):
         """Dict of headers to return in the initial 402 response."""
         return {BitTransfer.http_402_price: price,
-                BitTransfer.http_402_address: self.address,
+                BitTransfer.http_402_address: kwargs.get('address', self.address),
                 BitTransfer.http_402_username: self.seller_username}
 
     def redeem_payment(self, price, request_headers, **kwargs):

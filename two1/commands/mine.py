@@ -221,7 +221,7 @@ def set_payout_address(client, wallet):
     Returns:
         bytes: extra nonce 1 which is required for computing the coinbase transaction
         int: the size in bytes of the extra nonce 2
-        int: reward amount given upon sucessfull solution found
+        int: reward amount given upon successful solution found
     """
     payout_address = wallet.current_address
     auth_resp = client.account_payout_address_post(payout_address)
@@ -277,23 +277,26 @@ def get_work(client):
     try:
         response = client.get_work()
     except exceptions.ServerRequestError as e:
-        if e.status_code == 403 and "detail" in e.data and "TO200" in e.data["detail"]:
-            raise exceptions.BitcoinComputerNeededError(
-                msg=uxstring.UxString.mining_bitcoin_computer_needed, response=response)
-        elif e.status_code == 403 and e.data.get("detail") == "TO201":
-            raise exceptions.MiningDisabledError(uxstring.UxString.Error.suspended_account)
-        elif e.status_code == 403 and e.data.get("detail") == "TO501":
-            raise exceptions.MiningDisabledError(uxstring.UxString.monthly_mining_limit_reached)
-        elif e.status_code == 403 and e.data.get("detail") == "TO502":
-            raise exceptions.MiningDisabledError(uxstring.UxString.lifetime_earn_limit_reached)
-        elif e.status_code == 403 and e.data.get("detail") == "TO503":
-            raise exceptions.MiningDisabledError(uxstring.UxString.no_earn_allocations.format(
-                two1.TWO1_WWW_HOST, client.username))
+        profile_url = "{}/{}".format(two1.TWO1_WWW_HOST, client.username)
+        profile_cta = uxstring.UxString.mining_profile_call_to_action.format(profile_url)
+        err_string = None
+        if e.status_code == 403 and e.data.get("error") == "TO201":
+            err_string = uxstring.UxString.Error.suspended_account
+        elif e.status_code == 403 and e.data.get("error") == "TO501":
+            err_string = uxstring.UxString.monthly_mining_limit_reached
+        elif e.status_code == 403 and e.data.get("error") == "TO502":
+            err_string = uxstring.UxString.lifetime_earn_limit_reached
+        elif e.status_code == 403 and e.data.get("error") == "TO503":
+            err_string = uxstring.UxString.no_earn_allocations.format(two1.TWO1_WWW_HOST,
+                                                                      client.username)
         elif e.status_code == 404:
             if bitcoin_computer.has_mining_chip():
-                raise exceptions.MiningDisabledError(uxstring.UxString.monthly_mining_limit_reached)
+                err_string = uxstring.UxString.monthly_mining_limit_reached
             else:
-                raise exceptions.MiningDisabledError(uxstring.UxString.earn_limit_reached)
+                err_string = uxstring.UxString.earn_limit_reached
+
+        if err_string:
+            raise exceptions.MiningDisabledError("{}\n\n{}".format(err_string, profile_cta))
         else:
             raise e
 

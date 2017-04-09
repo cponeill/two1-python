@@ -5,8 +5,8 @@ Simple wrapper for zerotier-cli
 import json
 import logging
 import platform
-import subprocess
 import shutil
+import subprocess
 import sys
 
 from two1.commands.util import uxstring
@@ -209,7 +209,7 @@ def start_daemon():
     else:
         raise EnvironmentError("Do not know how to start zerotier deamon on your system")
 
-    return subprocess.check_output(cmd)
+    return subprocess.call(cmd)  # Command errors if already started
 
 
 def get_address(network_name):
@@ -264,10 +264,32 @@ def get_all_addresses():
 
     for network in networks:
         if len(network["assignedAddresses"]) > 0:
-            address = network["assignedAddresses"][0].split("/")[0]
+            for ip_address in network["assignedAddresses"]:
+                # Remove the address range (e.g. the "/24" in "1.2.3.4/24")
+                address = ip_address.split("/")[0]
+                # Preferentially return first IPv6 address (indicated
+                # by its containing a colon).  If there are no IPv6
+                # addresses found, the last IPv4 address will be returned
+                if ":" in address:
+                    break
         else:
             address = ""
 
         result[network["name"]] = address
 
     return result
+
+
+def get_network_id(network_name):
+    return {
+        network['name']: network['nwid'] for network in list_networks()}[network_name]
+
+
+def leave_all():
+    if not is_installed():
+        return
+    logger.info('Leaving all ZeroTier networks.')
+    for network, address in get_all_addresses().items():
+        logger.info('Leaving %s.' % network)
+        nwid = get_network_id(network)
+        leave_network(nwid)

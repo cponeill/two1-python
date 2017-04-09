@@ -24,7 +24,7 @@ install_requires = [
     'pyaes',
     'pytest',
     'pyyaml',
-    'requests',
+    'requests<=2.11.1',
     'sha256',
     'tabulate',
 ]
@@ -94,6 +94,8 @@ setup(
     # have to be included in MANIFEST.in as well.
     package_data={
         'two1': ['two1-config.json',
+                 'sell/util/scripts/ps_zerotier.sh',
+                 'sell/util/scripts/zerotier_installer.sh',
                  'sell/blueprints/base/Dockerfile',
                  'sell/blueprints/router/Dockerfile',
                  'sell/blueprints/router/files/nginx.conf',
@@ -127,7 +129,6 @@ setup(
             'wallet=two1.wallet.cli:main',
             '21=two1.cli:main',
             'twentyone=two1.cli:main',
-            'walletd=two1.wallet.daemon:main',
             'channels=two1.channels.cli:main',
         ],
     },

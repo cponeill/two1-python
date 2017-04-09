@@ -44,8 +44,6 @@ class TwentyOneProvider(BaseProvider):
     @testnet.setter
     def testnet(self, v):
         self._testnet = bool(v)
-        if self._testnet:
-            raise NotImplementedError('Testnet support is not currently available.') from None
         self.chain = "testnet3" if self._testnet else "bitcoin"
         self._set_url()
 
@@ -199,8 +197,6 @@ class TwentyOneProvider(BaseProvider):
                 raise exceptions.DataProviderError(result.text)
             else:
                 raise
-        except Exception as e:
-            raise exceptions.DataProviderError(e)
 
     def get_transactions(self, address_list, limit=100, min_block=None):
         """ Provides transactions associated with each address in address_list.

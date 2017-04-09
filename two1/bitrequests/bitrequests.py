@@ -345,7 +345,7 @@ class ChannelRequests(BitRequests):
     HTTP_PAYER_21USERNAME = 'Payer-21Username'
 
     DEFAULT_DEPOSIT_AMOUNT = 100000
-    DEFAULT_DURATION = 86400
+    DEFAULT_DURATION = 86400 * 8
     DEFAULT_ZEROCONF = True
     DEFAULT_USE_UNCONFIRMED = False
 
@@ -431,7 +431,7 @@ class ChannelRequests(BitRequests):
 
         return {
             ChannelRequests.HTTP_BITCOIN_PAYMENT_CHANNEL_TOKEN: token,
-            ChannelRequests.HTTP_BITCOIN_PRICE: price,
+            ChannelRequests.HTTP_BITCOIN_PRICE: str(price),
             ChannelRequests.HTTP_PAYER_21USERNAME: urllib.parse.quote(self.username) if self.username else None,
         }
 

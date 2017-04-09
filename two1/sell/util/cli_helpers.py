@@ -36,12 +36,12 @@ logger = logging.getLogger(__name__)
 MENU_COLOR = "blue"
 TITLE_COLOR = "cyan"
 PROMPT_COLOR = "yellow"
+WARNING_COLOR = "magenta"
 WIDTH = 35
 
 VmConfiguration = namedtuple('VmConfiguration', ['disk_size',
                                                  'vm_memory',
-                                                 'server_port',
-                                                 'network_interface'])
+                                                 'server_port'])
 
 
 def start_long_running(text, long_running_function, *args, **kwargs):
@@ -178,7 +178,6 @@ def get_vm_options():
     default_disk = Two1MachineVirtual.DEFAULT_VDISK_SIZE
     default_memory = Two1MachineVirtual.DEFAULT_VM_MEMORY
     default_port = Two1MachineVirtual.DEFAULT_SERVICE_PORT
-    default_network = Two1MachineVirtual.DEFAULT_ZEROTIER_INTERFACE
 
     disk_size = click.prompt("  Virtual disk size in MB (default = %s)" % default_disk,
                              type=int, default=default_disk, show_default=False)
@@ -186,13 +185,10 @@ def get_vm_options():
                              type=int, default=default_memory, show_default=False)
     server_port = click.prompt("  Port for micropayments server (default = %s)" % default_port,
                                type=int, default=default_port, show_default=False)
-    network_interface = click.prompt("  Network interface (default = %s)" % default_network,
-                                     default=default_network, show_default=False)
 
     return VmConfiguration(disk_size=disk_size,
                            vm_memory=vm_memory,
-                           server_port=server_port,
-                           network_interface=network_interface)
+                           server_port=server_port)
 
 
 def get_server_port():
@@ -227,23 +223,15 @@ def print_str(title, message, status_text, status_state, force=False):
     else:
         grouped = []
         for line in message:
-            split = line.split()
-            pre_add = ""
-            i = 0
-            while i < len(split):
-                word = split[i]
-                if len(word) > width:
+            for word in line.split():
+                if not grouped:
                     grouped.append(word)
-                    i += 1
                     continue
-                post_add = pre_add + word + " "
-                if len(post_add) > width:
-                    grouped.append(pre_add)
-                    pre_add = ""
+                if len(grouped[-1] + ' ' + word) <= width:
+                    grouped[-1] += ' '
+                    grouped[-1] += word
                 else:
-                    i += 1
-                    pre_add = post_add
-            grouped.append(pre_add)
+                    grouped.append(word)
     logger.info("  {0: <{width}}->  {1: <{width}}  [{2}]".format(
                 title,
                 grouped[0] if len(message) != 0 else "",
@@ -434,49 +422,6 @@ def get_example_usage(services, host, port):
     return example_usages
 
 
-def service_status_check_detailed(start_stats, host, port):
-    """ Gives detailed status of services.
-    """
-    rest_client = get_rest_client()
-    dollars_per_sat = rest_client.quote_bitcoin_price(1).json()["price"]
-
-    services_list = [i[0].lower() for i in start_stats]
-    balances = get_balances(services_list, rest_client)
-    earnings = get_earnings(services_list)
-    example_usages = get_example_usage(services_list, host, port)
-
-    for service_info in start_stats:
-        service = service_info[0].lower()
-        request_count = earnings[service]["request_count"]
-
-        buffer_earn_sat = earnings[service]["buffer"]
-        wallet_earn_sat = earnings[service]["wallet"]
-        channels_earn_sat = earnings[service]["channels"]
-
-        buffer_bal_sat = balances[service]["buffer"]
-        wallet_bal_sat = balances[service]["wallet"]
-        channels_bal_sat = balances[service]["channels"]
-
-        print_str(service.title(),
-                  [service_info[2]],
-                  "TRUE" if service_info[1] else "FALSE",
-                  service_info[1])
-
-        print_str_no_stat(["Requests: %s" % str(request_count).rjust(10)])
-        print_str_no_stat(["Lifetime Earnings:",
-                           build_detail_line("buffer", buffer_earn_sat, dollars_per_sat),
-                           build_detail_line("wallet", wallet_earn_sat, dollars_per_sat),
-                           build_detail_line("channels", channels_earn_sat, dollars_per_sat)])
-
-        print_str_no_stat(["Current Balances:",
-                           build_detail_line("buffer", buffer_bal_sat, dollars_per_sat),
-                           build_detail_line("wallet", wallet_bal_sat, dollars_per_sat),
-                           build_detail_line("channels", channels_bal_sat, dollars_per_sat)])
-        if service in example_usages:
-            print_str_no_stat(["Example Usage:",
-                               example_usages[service]])
-
-
 def build_detail_line(btc_type, satoshi, exchange_rate):
     btc_formatted = ("%s " % btc_type.title()).ljust(9)
     satoshi_formatted = str(satoshi).rjust(9)
@@ -592,28 +537,29 @@ def get_published_apps():
     return published_app_urls
 
 
-def prompt_to_publish(started_services, manager, publishing_ip):
+def prompt_to_publish(started_services, manager, ip_address, assume_yes=False):
     """ Prompt user to publish services if not published.
     """
-
-    if publishing_ip is None:
-        publishing_ip = manager.get_market_address()
+    if ip_address is None:
+        ip_address = manager.get_market_address()
     port = manager.get_server_port()
+    host_override = '%s:%s' % (ip_address, port)
 
     published_apps = get_published_apps()
-    started_apps = ["%s:%s/%s" % (publishing_ip, port, service) for service in started_services]
+    started_apps = ["%s:%s/%s" % (ip_address, port, service) for service in started_services]
     not_published = [i for i in started_apps if i not in published_apps]
     not_published_names = [i.split("/")[1] for i in not_published]
 
     if len(not_published) == 0:
         return []
-    if click.confirm(click.style("\nWould you like to publish the sucessfully started services?", fg=PROMPT_COLOR)):
+
+    if assume_yes or click.confirm(click.style("\nWould you like to publish the successfully started services?",
+                                               fg=PROMPT_COLOR)):
         time.sleep(2)
         published = start_long_running("Publishing services",
                                        publish_started,
                                        not_published_names,
-                                       publishing_ip,
-                                       port,
+                                       host_override,
                                        manager)
         return published
     else:
@@ -621,7 +567,7 @@ def prompt_to_publish(started_services, manager, publishing_ip):
         return []
 
 
-def publish_started(not_published, publishing_ip, port, manager):
+def publish_started(not_published, publishing_ip, manager):
     """ Publish started services.
     """
 
@@ -640,12 +586,9 @@ def publish_started(not_published, publishing_ip, port, manager):
         def unknown_publish_error_hook(sname):
             publish_stats.append((sname, False, ["An unknown error occurred"]))
 
-        def publish_timedout_hook(sname):
-            publish_stats.append((sname, False, ["Publishing timed out"]))
-
-        manager.publish_service(service_name, publishing_ip, port,
-                                published_hook, already_published_hook, failed_to_publish_hook,
-                                unknown_publish_error_hook, publish_timedout_hook)
+        manager.publish_service(service_name, publishing_ip, get_rest_client(), published_hook,
+                                already_published_hook, failed_to_publish_hook,
+                                unknown_publish_error_hook)
 
     return publish_stats
 
@@ -740,7 +683,53 @@ def print_str_no_label(title, message):
                         width=WIDTH))
 
 
-def print_example_usage(services, host, port):
-    usage = get_example_usage(services, host, port)
-    for service in services:
-        print_str_no_label(service, [usage[service]])
+def running_old_sell(manager, installer):
+    if any(installed is False for package, installed in installer.check_dependencies()):
+        return False
+
+    if isinstance(manager.machine, Two1MachineVirtual):
+        try:
+            vbox_conf = subprocess.check_output(["VBoxManage", "showvminfo", "21", "--machinereadable"],
+                                                stderr=subprocess.DEVNULL)
+            if type(vbox_conf) is bytes:
+                vbox_conf = vbox_conf.decode()
+            if "bridgeadapter3" in vbox_conf:
+                return True
+            else:
+                return False
+        except subprocess.CalledProcessError:
+            return False
+    else:
+        return False
+
+
+def failed_to_build_hook(service_name):
+    print_str(service_name, ["Failed to build"], "FALSE", False)
+
+
+def built_hook(service_name):
+    print_str(service_name, ["Built"], "TRUE", True)
+
+
+def failed_to_start_hook(service_name):
+    print_str(service_name, ["Failed to start"], "FALSE", False)
+
+
+def started_hook(service_name):
+    print_str(service_name, ["Started"], "TRUE", True)
+
+
+def failed_to_restart_hook(service_name):
+    print_str(service_name, ["Failed to restart"], "FALSE", False)
+
+
+def restarted_hook(service_name):
+    print_str(service_name, ["Restarted"], "TRUE", True)
+
+
+def failed_to_up_hook(service_name):
+    print_str(service_name, ["Failed to bring up"], "FALSE", False)
+
+
+def up_hook(service_name):
+    print_str(service_name, ["Up"], "TRUE", True)
