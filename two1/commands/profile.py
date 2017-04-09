@@ -20,7 +20,7 @@ from two1.commands.config import Config
 # Creates a ClickLogger
 logger = logging.getLogger(__name__)
 
-# Captures username
+# Instantiates wallet, username, and rest_client.
 wallet = Wallet()
 username = Config().username
 client = rest_client.TwentyOneRestClient(two1.TWO1_HOST, MachineAuthWallet(wallet), username)
@@ -33,12 +33,27 @@ client = rest_client.TwentyOneRestClient(two1.TWO1_HOST, MachineAuthWallet(walle
 @decorators.capture_usage
 def profile(ctx, json):
     """Open your 21.co profile in a web browser."""
-    #_profile(ctx.obj['config'].username)
     if json:
-        _search_profile(ctx.obj['config'].username, "%s/%s" % (TWO1_WWW_HOST, ctx.obj['config'].username)
+        _search_profile(ctx.obj['config'].username, "%s/%s" % (TWO1_WWW_HOST, ctx.obj['config'].username))
     else:
         _profile(ctx.obj['config'].username)
+
 
 def _profile(username):
     url = "%s/%s" % (TWO1_WWW_HOST, username)
     webbrowser.open(url)
+
+
+def _search_profile(ctx, url):
+    """Open your 21.co profile as JSON output in terminal."""
+    params = {
+        '21_url': url,
+        'total_earnings': client.get_earnings()['total_earnings'],
+        'total_payout': client.get_earnings()['total_payouts'],
+        'total_flushed': client.get_earnings()['flushed_amount'],
+        'wallet_address': wallet.get_payout_address(),
+        'marketplace_apps': client.get_published_apps(username).json(),
+        'mined': client.get_mined_satoshis()
+    }
+
+    print(jsonlib.dumps(params, indent=2))
